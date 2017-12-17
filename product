@@ -1,0 +1,27 @@
+DROP DATABASE IF EXISTS bamazon;
+
+CREATE DATABASE bamazon;
+
+USE bamazon;
+
+CREATE TABLE products (
+  product_id INT NOT NULL AUTO_INCREMENT,
+  product_name VARCHAR(45) NOT NULL,
+  department_name VARCHAR(30) NOT NULL,
+  price DECIMAL(10,2) NOT NULL,
+  stock_quantity INT NULL,
+  PRIMARY KEY (product_id),
+  UNIQUE (product_name, department_name)
+);
+
+
+INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('Bluetooth Earbuds', 'Electronics', 38.99, 144);
+INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('PS4 Ergonomic Controller', 'Electronics', 59.99, 144);
+INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('Sean Duffy - Boxed Set', 'Books', 49.99, 30);
+INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('The Bacon Diet', 'Books', 10.99, 100);
+INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('Bear Repellant Spray', 'Hunting/Camping', 24.95, 40);
+INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('Entrenching Tool', 'Hunting/Camping', 24.99, 12);
+INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('The Bacon Diet Cookbook', 'Books', 9.99, 75);
+INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('Fundamentals of Asymetrical Warfare', 'Books', 103.49, 10);
+INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('Samsung Galaxy S97', 'Electronics', 8999.99, 2);
+INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('Down-Feather Sleeping Bag', 'Hunting/Camping', 108.95, 9);
