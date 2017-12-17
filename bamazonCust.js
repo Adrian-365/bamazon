@@ -47,7 +47,7 @@ function askForSale() {
         .then(function(answer) {
             if (answer.action === "Yes, I`m ready to buy!") {
                 console.log('\nGreat!!\n')
-                connection.end();
+                chooseItem();
             } else {
                 console.log('\nOkay, we`ll be here!\n')
                 connection.end();
@@ -56,3 +56,59 @@ function askForSale() {
 
         });
 };
+//-----------------------------------------
+var choicesArray = [];
+
+function chooseItem() {
+    connection.query("SELECT * FROM products", function(err, res) {
+        // console.log(res);
+        inquirer.prompt([{
+                name: 'choice',
+                type: 'checkbox',
+                message: 'Which item(s) would you like to buy?',
+                //what does the 'value' do?  
+                choices: function(value) {
+                    for (var i = 0; i < res.length; i++) {
+                        choicesArray.push(res[i].product_name);
+                    }
+                    //what does this return do??
+                    return choicesArray;
+                }
+
+
+            },
+            {
+                name: 'bid',
+                type: 'input',
+                message: 'How much do you bid?',
+                validate: function(value) {
+                    if (isNaN(value) == false) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        ]).then(function(answer) {
+            // check the bid against the current highestgbid
+            connection.query(
+                'INSERT into auctions SET ?', {
+                    itemname: answer.itemname,
+                    category: answer.category,
+                    startingbid: answer.startingbid,
+                    highestgbid: answer.startingbid
+                },
+                function(err, res) {
+                    console.log("Your bid has been entered, thank you.");
+                    start();
+                }
+            )
+
+        })
+
+
+
+
+    });
+
+}
