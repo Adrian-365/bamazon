@@ -1,6 +1,6 @@
 var inquirer = require('inquirer');
 var mysql = require("mysql");
-
+//------------------------
 var connection = mysql.createConnection({
     host: "localhost",
     port: 3307,
@@ -12,10 +12,10 @@ var connection = mysql.createConnection({
 });
 connection.connect(function(err) {
     if (err) throw err;
-    console.log("connected as id " + connection.threadId + '\n');
+    // console.log("connected as id " + connection.threadId + '\n');
     afterConnection();
 });
-
+//-------------------------
 function afterConnection() {
     connection.query("SELECT * FROM products", function(err, res) {
         if (err) throw err;
@@ -32,7 +32,7 @@ function afterConnection() {
         askForSale();
     });
 };
-
+//-----------------------------------------
 function askForSale() {
     inquirer
         .prompt({
@@ -40,16 +40,16 @@ function askForSale() {
             type: "list",
             message: "Would you like to purchase any of these items?",
             choices: [
-                "Yes, I`m ready to buy!",
-                "Not right now, I'm just browsing."
+                "Yes, I\'m ready to buy!",
+                "Not right now, I\'m just browsing."
             ]
         })
         .then(function(answer) {
-            if (answer.action === "Yes, I`m ready to buy!") {
+            if (answer.action === "Yes, I\'m ready to buy!") {
                 console.log('\nGreat!!\n')
                 chooseItem();
             } else {
-                console.log('\nOkay, we`ll be here!\n')
+                console.log('\nOkay, we\'ll be here when you are ready!\n')
                 connection.end();
 
             }
@@ -57,30 +57,31 @@ function askForSale() {
         });
 };
 //-----------------------------------------
-var choicesArray = [];
+
+var numPurchased;
 
 function chooseItem() {
     connection.query("SELECT * FROM products", function(err, res) {
         // console.log(res);
         inquirer.prompt([{
                 name: 'choice',
-                type: 'checkbox',
-                message: 'Which item(s) would you like to buy?',
+                type: 'list',
+                paginated: true,
+                message: 'Which item would you like to buy?',
                 //what does the 'value' do?  
                 choices: function(value) {
+                    var choicesArray = [];
                     for (var i = 0; i < res.length; i++) {
                         choicesArray.push(res[i].product_name);
                     }
                     //what does this return do??
                     return choicesArray;
                 }
-
-
             },
             {
-                name: 'bid',
+                name: 'units',
                 type: 'input',
-                message: 'How much do you bid?',
+                message: 'How many of these would you like today?',
                 validate: function(value) {
                     if (isNaN(value) == false) {
                         return true;
@@ -90,25 +91,93 @@ function chooseItem() {
                 }
             }
         ]).then(function(answer) {
+            numPurchased = '';
+            numPurchased = parseInt(answer.units);
             // check the bid against the current highestgbid
-            connection.query(
-                'INSERT into auctions SET ?', {
-                    itemname: answer.itemname,
-                    category: answer.category,
-                    startingbid: answer.startingbid,
-                    highestgbid: answer.startingbid
-                },
-                function(err, res) {
-                    console.log("Your bid has been entered, thank you.");
-                    start();
+            connection.query("SELECT * FROM products WHERE product_name ='" + answer.choice + "'", function(err, res) {
+                if (answer.units > res[0].stock_quantity) {
+                    function ammendOrder() {
+                        inquirer
+                            .prompt({
+                                name: "ammend",
+                                type: "list",
+                                message: 'My apologies, we only have ' + res[0].stock_quantity + ' of those in stock right now. Would you like to ammend your order, or maybe buy something else instead?',
+                                choices: [
+                                    "Yes let\'s ammend the order, or buy something different.",
+                                    "No, thank you."
+                                ]
+                            })
+                            .then(function(answer) {
+                                if (answer.ammend === "Yes let\'s ammend the order, or buy something different.") {
+                                    console.log('\n');
+                                    chooseItem();
+                                } else {
+                                    console.log('\nOkay, we\'ll be here when you are ready!\n')
+                                    connection.end();
+
+                                }
+
+                            });
+                    }
+
+                    ammendOrder();
+                } else {
+                    var total = answer.units * res[0].price;
+                    console.log('Thank you that will be $' + total + ', please.');
+                    inquirer
+                        .prompt({
+                            name: "pay",
+                            type: "list",
+                            message: 'Complete Transaction?',
+                            choices: [
+                                "Yes.",
+                                "Nope."
+                            ]
+                        })
+                        .then(function(answer) {
+
+                            function continue2() {
+                                inquirer
+                                    .prompt({
+                                        name: "continue",
+                                        type: "list",
+                                        message: 'Would you like to continue shopping?',
+                                        choices: [
+                                            "Yes, please.",
+                                            "No, thank you."
+                                        ]
+                                    })
+                                    .then(function(answer) {
+                                        if (answer.continue === "Yes, please.") {
+                                            console.log('\n');
+                                            chooseItem();
+                                        } else {
+                                            console.log('\nOkay, we\'ll be here when you are ready!\n')
+                                            connection.end();
+
+                                        }
+
+                                    });
+
+                            }
+
+                            if (answer.pay === "Yes.") {
+
+                                var currentStock = parseInt(res[0].stock_quantity);
+
+                                var newStock = currentStock - numPurchased;
+
+                                connection.query("UPDATE products SET stock_quantity = " + newStock + " WHERE product_name = '" + res[0].product_name + "'", function(err, res) {
+
+                                    console.log('Thank you! Your account has been debited $' + total + '.\n\nOne of our all-seeing drones will deliver your purchase shortly.  \nDon\'t worry; we know exactly where you are at all times. We\'re Bamazon - we know everything.\n');
+                                    continue2();
+                                })
+                            } else {
+                                continue2();
+                            }
+                        });
                 }
-            )
-
+            })
         })
-
-
-
-
     });
-
 }
